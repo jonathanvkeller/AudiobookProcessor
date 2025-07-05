@@ -32,17 +32,17 @@ public class MetadataService
             throw new InvalidDataException($"FFprobe returned no data for file: {filePath}");
         }
 
-        var audioFile = new AudioFile { FilePath = filePath };
+        var audioFile = new AudioFile { filePath = filePath }; // Corrected
         JsonNode jsonNode = JsonNode.Parse(jsonString);
 
         // Get format info (duration, format name)
         JsonNode formatNode = jsonNode?["format"];
         if (formatNode != null)
         {
-            audioFile.Format = formatNode["format_name"]?.GetValue<string>();
+            audioFile.format = formatNode["format_name"]?.GetValue<string>(); // Corrected
             if (decimal.TryParse(formatNode["duration"]?.GetValue<string>(), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal durationSeconds))
             {
-                audioFile.Duration = TimeSpan.FromSeconds((double)durationSeconds);
+                audioFile.duration = TimeSpan.FromSeconds((double)durationSeconds); // Corrected
             }
         }
 
@@ -50,7 +50,7 @@ public class MetadataService
         JsonNode tags = formatNode?["tags"];
         if (tags != null)
         {
-            audioFile.Metadata = new AudioMetadata
+            audioFile.metadata = new AudioMetadata // Corrected
             {
                 title = tags["title"]?.GetValue<string>(),
                 author = tags["artist"]?.GetValue<string>(),

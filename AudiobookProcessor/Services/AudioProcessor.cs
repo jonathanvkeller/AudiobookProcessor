@@ -30,7 +30,7 @@ public class AudioProcessor
 
     private void reportProgress(IProgress<ProcessingStatus> progress, ProcessingPhase phase, string message)
     {
-        progress.Report(new ProcessingStatus { Phase = phase, StatusMessage = message });
+        progress.Report(new ProcessingStatus { phase = phase, statusMessage = message });
     }
 
     public Task<FolderAnalysis> analyzeFolderAsync(string folderPath)
@@ -99,7 +99,7 @@ public class AudioProcessor
                     await ffmpegService.combineFilesAsync(analysis.AudioFilePaths.ToArray(), combinedFile);
 
                     reportProgress(progress, ProcessingPhase.Processing, "Embedding chapters and metadata...");
-                    var totalDuration = TimeSpan.FromSeconds(audioFiles.Sum(f => f.Duration.TotalSeconds));
+                    var totalDuration = TimeSpan.FromSeconds(audioFiles.Sum(f => f.duration.TotalSeconds));
                     var chapters = metadataService.createChapters(audioFiles);
                     string chapterFile = await metadataService.createChapterFileAsync(chapters, totalDuration);
 
