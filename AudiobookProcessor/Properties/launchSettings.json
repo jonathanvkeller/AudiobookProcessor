@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "AudiobookProcessor (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "AudiobookProcessor (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

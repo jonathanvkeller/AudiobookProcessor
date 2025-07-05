@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36221.1 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AudiobookProcessor", "AudiobookProcessor\AudiobookProcessor.csproj", "{3E712D59-35BC-413E-9906-E9BD7273A3E3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM64 = Debug|ARM64
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|ARM64 = Release|ARM64
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Debug|ARM64.Build.0 = Debug|ARM64
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Debug|ARM64.Deploy.0 = Debug|ARM64
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Debug|x64.ActiveCfg = Debug|x64
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Debug|x64.Build.0 = Debug|x64
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Debug|x64.Deploy.0 = Debug|x64
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Debug|x86.ActiveCfg = Debug|x86
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Debug|x86.Build.0 = Debug|x86
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Debug|x86.Deploy.0 = Debug|x86
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Release|ARM64.ActiveCfg = Release|ARM64
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Release|ARM64.Build.0 = Release|ARM64
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Release|ARM64.Deploy.0 = Release|ARM64
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Release|x64.ActiveCfg = Release|x64
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Release|x64.Build.0 = Release|x64
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Release|x64.Deploy.0 = Release|x64
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Release|x86.ActiveCfg = Release|x86
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Release|x86.Build.0 = Release|x86
+		{3E712D59-35BC-413E-9906-E9BD7273A3E3}.Release|x86.Deploy.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E95EED89-2600-4421-B826-883DFA9887DA}
+	EndGlobalSection
+EndGlobal
