@@ -1,117 +1,122 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using AudiobookProcessor.Models;
+using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace AudiobookProcessor.Services;
 
-/// <summary>
-/// Manages all interactions with the ffmpeg.exe command-line tool.
-/// </summary>
 public class FFmpegService
 {
-    // A placeholder for the path to the ffmpeg executable.
     private readonly string ffmpegPath = "ffmpeg.exe";
+    private readonly string ffprobePath = "ffprobe.exe";
 
-    /// <summary>
-    /// Converts a single audio file to M4B format.
-    /// </summary>
-    public async Task convertToM4bAsync(string inputFile, string outputFile)
+    public async Task convertToM4bAsync(string inputFile, string outputFile, TimeSpan totalDuration, IProgress<ProcessingStatus> progress)
     {
-        // -i: specifies the input file.
-        // -c:a aac: sets the audio codec to AAC.
-        // -c:v copy: copies the video stream (cover art) without re-encoding.
-        // -y: overwrites the output file if it exists.
         string arguments = $"-i \"{inputFile}\" -c:a aac -c:v copy -y \"{outputFile}\"";
-
-        await runProcessAsync(arguments);
+        await runProcessAsync(ffmpegPath, arguments, null, totalDuration, progress);
     }
 
-    /// <summary>
-    /// Combines multiple audio files into a single file.
-    /// </summary>
-    public async Task combineFilesAsync(string[] inputFiles, string outputFile)
+    public async Task combineFilesAsync(string[] inputFiles, string baseFolderPath, string outputFile, TimeSpan totalDuration, IProgress<ProcessingStatus> progress)
     {
-        string tempFileListPath = string.Empty;
+        string tempFileListPath = Path.Combine(baseFolderPath, "ffmpeg_concat_list.txt");
         try
         {
-            // Create a temporary file to list the inputs for FFmpeg's concat demuxer.
-            tempFileListPath = Path.GetTempFileName();
-
-            // Build the content for the file list. Each line must be in the format: file '/path/to/file.mp3'
             var fileListContent = new StringBuilder();
             foreach (var inputFile in inputFiles)
             {
-                // Using single quotes and forward slashes for compatibility with FFmpeg's file list format.
-                fileListContent.AppendLine($"file '{inputFile.Replace('\\', '/')}'");
+                var relativePath = Path.GetRelativePath(baseFolderPath, inputFile);
+                fileListContent.AppendLine($"file '{relativePath.Replace('\\', '/')}'");
             }
             await File.WriteAllTextAsync(tempFileListPath, fileListContent.ToString());
 
-            // -f concat: use the concat demuxer.
-            // -safe 0: required for using absolute paths in the file list.
-            // -i: specifies the input file (our generated list).
-            // -c copy: stream copy the audio without re-encoding.
-            // -y: overwrite the output file if it exists.
-            string arguments = $"-f concat -safe 0 -i \"{tempFileListPath}\" -c copy -y \"{outputFile}\"";
+            string arguments = $"-f concat -safe 0 -i \"{tempFileListPath}\" -c:a aac -vn -f mp4 -y \"{outputFile}\"";
 
-            await runProcessAsync(arguments);
+            await runProcessAsync(ffmpegPath, arguments, baseFolderPath, totalDuration, progress);
         }
         finally
         {
-            // Always clean up the temporary file list, even if an error occurs.
-            if (!string.IsNullOrEmpty(tempFileListPath) && File.Exists(tempFileListPath))
+            if (File.Exists(tempFileListPath))
             {
                 File.Delete(tempFileListPath);
             }
         }
     }
 
-    /// <summary>
-    /// Extracts metadata from a file using FFmpeg/FFprobe.
-    /// </summary>
     public async Task<string> extractMetadataAsync(string inputFile)
     {
-        // Implementation to come later.
-        await Task.CompletedTask;
-        return string.Empty;
+        string arguments = $"-v quiet -print_format json -show_format -show_streams \"{inputFile}\"";
+        return await runProcessAsync(ffprobePath, arguments);
     }
 
-    /// <summary>
-    /// Embeds chapter markers into an M4B file.
-    /// </summary>
     public async Task embedChaptersAsync(string inputFile, string chapterFile, string outputFile)
     {
-        // Implementation to come later.
-        await Task.CompletedTask;
+        string arguments = $"-i \"{inputFile}\" -i \"{chapterFile}\" -map 0 -map_metadata 1 -codec copy -y \"{outputFile}\"";
+        await runProcessAsync(ffmpegPath, arguments);
     }
 
-    /// <summary>
-    /// A private helper to run an FFmpeg command and wait for it to complete.
-    /// </summary>
-    private async Task runProcessAsync(string arguments)
+    private Task<string> runProcessAsync(string executablePath, string arguments, string workingDirectory = null, TimeSpan? totalDuration = null, IProgress<ProcessingStatus> progress = null)
     {
-        var processStartInfo = new ProcessStartInfo
+        var tcs = new TaskCompletionSource<string>();
+        var process = new Process
         {
-            FileName = ffmpegPath,
-            Arguments = arguments,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
+            StartInfo =
+            {
+                FileName = executablePath,
+                Arguments = arguments,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = workingDirectory
+            },
+            EnableRaisingEvents = true
         };
 
-        using var process = new Process { StartInfo = processStartInfo };
+        var output = new StringBuilder();
+        var error = new StringBuilder();
+
+        process.Exited += (sender, args) =>
+        {
+            if (process.ExitCode == 0)
+            {
+                tcs.SetResult(output.ToString());
+            }
+            else
+            {
+                tcs.SetException(new System.Exception($"{Path.GetFileName(executablePath)} failed with exit code {process.ExitCode}: {error}"));
+            }
+            process.Dispose();
+        };
+
+        process.OutputDataReceived += (sender, args) =>
+        {
+            if (args.Data != null) output.AppendLine(args.Data);
+        };
+
+        process.ErrorDataReceived += (sender, args) =>
+        {
+            if (args.Data == null) return;
+            error.AppendLine(args.Data);
+
+            // This is the new progress parsing logic
+            if (totalDuration.HasValue && progress != null && args.Data.Contains("time="))
+            {
+                var timeString = args.Data.Substring(args.Data.IndexOf("time=") + 5, 11);
+                if (TimeSpan.TryParse(timeString, CultureInfo.InvariantCulture, out var currentTime))
+                {
+                    var percentage = (currentTime.TotalSeconds / totalDuration.Value.TotalSeconds) * 100;
+                    progress.Report(new ProcessingStatus { progressPercentage = Math.Min(100, percentage) });
+                }
+            }
+        };
 
         process.Start();
-        await process.WaitForExitAsync();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
 
-        if (process.ExitCode != 0)
-        {
-            var error = await process.StandardError.ReadToEndAsync();
-            throw new System.Exception($"FFmpeg failed with exit code {process.ExitCode}: {error}");
-        }
+        return tcs.Task;
     }
 }

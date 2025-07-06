@@ -1,31 +1,95 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
+using AudiobookProcessor.Models;
+using AudiobookProcessor.Services;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+using System;
+using Windows.Storage.Pickers;
+using WinRT.Interop;
 
 namespace AudiobookProcessor
 {
-    /// <summary>
-    /// An empty window that can be used on its own or navigated to within a Frame.
-    /// </summary>
     public sealed partial class MainWindow : Window
     {
+        private readonly FileService fileService;
+        private readonly FFmpegService ffmpegService;
+        private readonly MetadataService metadataService;
+        private readonly AudioProcessor audioProcessor;
+
+        private string selectedFolderPath;
+
         public MainWindow()
         {
-            InitializeComponent();
+            this.InitializeComponent();
+
+            this.fileService = new FileService();
+            this.ffmpegService = new FFmpegService();
+            this.metadataService = new MetadataService(this.ffmpegService);
+            this.audioProcessor = new AudioProcessor(this.fileService, this.ffmpegService, this.metadataService);
+        }
+
+        private async void selectFolderButton_Click(object sender, RoutedEventArgs e)
+        {
+            var folderPicker = new FolderPicker();
+            folderPicker.SuggestedStartLocation = PickerLocationId.Downloads;
+            folderPicker.FileTypeFilter.Add("*");
+
+            var windowHandle = WindowNative.GetWindowHandle(this);
+            InitializeWithWindow.Initialize(folderPicker, windowHandle);
+
+            var folder = await folderPicker.PickSingleFolderAsync();
+
+            if (folder != null)
+            {
+                selectedFolderPath = folder.Path;
+                folderPathTextBlock.Text = selectedFolderPath;
+
+                var analysis = await audioProcessor.analyzeFolderAsync(selectedFolderPath);
+                analysisResultTextBlock.Text = analysis.AnalysisMessage;
+
+                bool canProcess = analysis.RecommendedAction == ProcessingAction.CombineMultipleFiles ||
+                                  analysis.RecommendedAction == ProcessingAction.ConvertSingleFile;
+
+                processButton.IsEnabled = canProcess;
+            }
+        }
+
+        private async void processButton_Click(object sender, RoutedEventArgs e)
+        {
+            selectFolderButton.IsEnabled = false;
+            processButton.IsEnabled = false;
+            progressBar.Visibility = Visibility.Visible;
+            progressBar.IsIndeterminate = false; // Set to determinate
+            logTextBox.Text = "";
+            logTextBox.Visibility = Visibility.Visible;
+
+            var progress = new Progress<ProcessingStatus>(p =>
+            {
+                // Update both the text and the progress bar value
+                if (!string.IsNullOrEmpty(p.statusMessage))
+                {
+                    logTextBox.Text += $"{p.statusMessage}\n";
+                }
+                if (p.progressPercentage > 0)
+                {
+                    progressBar.Value = p.progressPercentage;
+                }
+            });
+
+            try
+            {
+                await audioProcessor.processFolderAsync(selectedFolderPath, progress);
+            }
+            catch (Exception ex)
+            {
+                logTextBox.Text += $"\nERROR: {ex.Message}";
+            }
+            finally
+            {
+                selectFolderButton.IsEnabled = true;
+                processButton.IsEnabled = true;
+                progressBar.Visibility = Visibility.Collapsed;
+                progressBar.IsIndeterminate = true; // Reset for next run
+                progressBar.Value = 0;
+            }
         }
     }
 }
