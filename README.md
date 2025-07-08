@@ -1,69 +1,31 @@
-# AudiobookProcessor
+# Audiobook Processor
 
-A brutally simple Windows utility for preparing audiobook files for Jellyfin. Converts messy collections of audio files into clean, single M4B files with preserved metadata and chapters.
+A brutally simple console utility for preparing audiobook files for Jellyfin. It converts messy collections of audio files into clean, single M4B files with preserved metadata and chapters.
+
+!(image_160988.png)
 
 ## What It Does
 
-- **Multiple MP3/M4A files** → Single M4B with embedded chapters
-- **Single non-M4B file** → M4B conversion with metadata preservation
-- **Already processed M4B** → Skips and reports clean
-- **Preserves all metadata** → Cover art, narrator, series info, chapters
-- **Safe processing** → Validates before overwriting, atomic operations
+- **Multiple audio files** → Single M4B file with preserved metadata and embedded chapters.
+- **Single non-M4B file** → M4B conversion with metadata preservation.
+- **Safe processing** → Backs up original files before processing begins.
+- **Preserves Metadata** → Keeps key information like title and author intact.
 
 ## Why This Exists
 
-Jellyfin wants single audiobook files with embedded chapters. Publishers give you 47 separate MP3 files or weird formats. This tool fixes that mismatch without losing your precious metadata.
+Jellyfin prefers single audiobook files with embedded chapters. Publishers often provide folders with dozens of separate MP3 or M4A files. This tool fixes that mismatch without losing your precious metadata.
 
 ## Requirements
 
-- Windows 10/11
-- .NET 8.0+ (bundled in standalone exe)
-- FFmpeg (bundled)
+- Windows (64-bit)
+- FFmpeg and FFprobe (must be in the same folder as the executable). The application is bundled with the required versions.
 
 ## Usage
 
-1. Run AudiobookProcessor.exe
-2. Select audiobook folder
-3. Review what will happen
-4. Click "Process Folder"
-5. Wait for completion
-6. Import into Jellyfin
+This is a console application. After publishing the `AudiobookProcessor.ConsoleUI` project, you can run it from a terminal (like Windows Terminal or PowerShell).
 
-## Features
+1.  Navigate to the publish directory in your terminal.
+2.  Run the application, passing the path to your audiobook folder as an argument. Make sure to wrap the path in quotes if it contains spaces.
 
-- **Brutalist UI** - No fancy nonsense, just functionality
-- **Real-time progress** - See exactly what's happening
-- **Verbose logging** - Optional detailed output for troubleshooting
-- **Fail-fast approach** - Stops on errors rather than corrupting files
-- **Metadata preservation** - Keeps all your audiobook info intact
-- **Chapter support** - Properly embedded chapters for navigation
-
-## Supported Input Formats
-
-- MP3 (ID3v2 metadata)
-- M4A/M4B (iTunes metadata)
-- FLAC (Vorbis comments)
-- OGG (Vorbis comments)
-- WMA (Windows Media metadata)
-
-## Output Format
-
-All files are converted to M4B (MPEG-4 audiobook format) with:
-
-- AAC audio codec
-- Embedded chapters
-- Preserved metadata
-- Cover art
-- Proper audiobook tagging
-
-## Development
-
-Built with WinUI 3 and bundled FFmpeg. No external dependencies, no web frameworks, no unnecessary complexity.
-
-## License
-
-MIT License - Use it however you want.
-
-## Contributing
-
-This is a personal utility project. Feel free to fork and modify for your needs. PRs welcome if they maintain the simplicity and brutalist approach.
+```powershell
+.\AudiobookProcessor.ConsoleUI.exe "C:\Path\To Your\Audiobook Folder"
