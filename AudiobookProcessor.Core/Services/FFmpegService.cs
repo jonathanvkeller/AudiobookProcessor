@@ -15,7 +15,8 @@ public class FFmpegService
 
     public async Task convertToM4bAsync(string inputFile, string outputFile, TimeSpan totalDuration, IProgress<ProcessingStatus> progress)
     {
-        string arguments = $"-i \"{inputFile}\" -c:a aac -c:v copy -y \"{outputFile}\"";
+        // Add the bitrate flag here as well for consistency
+        string arguments = $"-i \"{inputFile}\" -c:a aac -b:a 128k -c:v copy -y \"{outputFile}\"";
         await runProcessAsync(ffmpegPath, arguments, null, totalDuration, progress);
     }
 
@@ -32,7 +33,8 @@ public class FFmpegService
             }
             await File.WriteAllTextAsync(tempFileListPath, fileListContent.ToString());
 
-            string arguments = $"-f concat -safe 0 -i \"{tempFileListPath}\" -c:a aac -vn -f mp4 -y \"{outputFile}\"";
+            // This line is the only change. The -b:a 128k flag sets a target bitrate.
+            string arguments = $"-f concat -safe 0 -i \"{tempFileListPath}\" -c:a aac -vn -b:a 128k -f mp4 -y \"{outputFile}\"";
 
             await runProcessAsync(ffmpegPath, arguments, baseFolderPath, totalDuration, progress);
         }
@@ -101,7 +103,6 @@ public class FFmpegService
             if (args.Data == null) return;
             error.AppendLine(args.Data);
 
-            // This is the new progress parsing logic
             if (totalDuration.HasValue && progress != null && args.Data.Contains("time="))
             {
                 var timeString = args.Data.Substring(args.Data.IndexOf("time=") + 5, 11);
