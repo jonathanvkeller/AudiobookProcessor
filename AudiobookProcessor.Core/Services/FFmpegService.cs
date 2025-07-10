@@ -15,8 +15,7 @@ public class FFmpegService
 
     public async Task convertToM4bAsync(string inputFile, string outputFile, TimeSpan totalDuration, IProgress<ProcessingStatus> progress)
     {
-        // Add the bitrate flag here as well for consistency
-        string arguments = $"-i \"{inputFile}\" -c:a aac -b:a 128k -c:v copy -y \"{outputFile}\"";
+        string arguments = $"-i \"{inputFile}\" -c:a aac -b:a 128k -vn -y \"{outputFile}\"";
         await runProcessAsync(ffmpegPath, arguments, null, totalDuration, progress);
     }
 
@@ -33,7 +32,6 @@ public class FFmpegService
             }
             await File.WriteAllTextAsync(tempFileListPath, fileListContent.ToString());
 
-            // This line is the only change. The -b:a 128k flag sets a target bitrate.
             string arguments = $"-f concat -safe 0 -i \"{tempFileListPath}\" -c:a aac -vn -b:a 128k -f mp4 -y \"{outputFile}\"";
 
             await runProcessAsync(ffmpegPath, arguments, baseFolderPath, totalDuration, progress);
@@ -62,6 +60,8 @@ public class FFmpegService
     private Task<string> runProcessAsync(string executablePath, string arguments, string workingDirectory = null, TimeSpan? totalDuration = null, IProgress<ProcessingStatus> progress = null)
     {
         var tcs = new TaskCompletionSource<string>();
+        var stopwatch = new Stopwatch();
+
         var process = new Process
         {
             StartInfo =
@@ -109,12 +109,21 @@ public class FFmpegService
                 if (TimeSpan.TryParse(timeString, CultureInfo.InvariantCulture, out var currentTime))
                 {
                     var percentage = (currentTime.TotalSeconds / totalDuration.Value.TotalSeconds) * 100;
-                    progress.Report(new ProcessingStatus { progressPercentage = Math.Min(100, percentage) });
+
+                    TimeSpan etr = TimeSpan.Zero;
+                    if (percentage > 1)
+                    {
+                        var estimatedTotalTime = TimeSpan.FromMilliseconds(stopwatch.Elapsed.TotalMilliseconds / (percentage / 100));
+                        etr = estimatedTotalTime - stopwatch.Elapsed;
+                    }
+
+                    progress.Report(new ProcessingStatus { progressPercentage = Math.Min(100, percentage), etr = etr });
                 }
             }
         };
 
         process.Start();
+        stopwatch.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 

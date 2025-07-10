@@ -3,11 +3,22 @@ using AudiobookProcessor.Services;
 using System;
 using System.IO;
 
-// Instantiate all the services
+// Set Window Size
+int windowWidth = 120;
+int windowHeight = 30;
+if (OperatingSystem.IsWindows())
+{
+    Console.SetWindowSize(windowWidth, windowHeight);
+    Console.SetBufferSize(windowWidth, windowHeight);
+}
+
+
+// Instantiate services
 var fileService = new FileService();
 var ffmpegService = new FFmpegService();
 var metadataService = new MetadataService(ffmpegService);
 var audioProcessor = new AudioProcessor(fileService, ffmpegService, metadataService);
+var consoleLock = new object();
 
 Console.WriteLine("Audiobook Processor Initialized");
 
@@ -16,15 +27,12 @@ while (true) // Main application loop
     Console.WriteLine("\nPlease enter the full path to an audiobook folder (or type 'exit' to close):");
     string folderPath = Console.ReadLine();
 
-    if (string.IsNullOrWhiteSpace(folderPath))
-    {
-        continue;
-    }
+    if (string.IsNullOrWhiteSpace(folderPath)) continue;
 
-    if (folderPath.Equals("exit", StringComparison.OrdinalIgnoreCase))
-    {
-        break;
-    }
+    // This is the new line to clean the input path
+    folderPath = folderPath.Trim('"');
+
+    if (folderPath.Equals("exit", StringComparison.OrdinalIgnoreCase)) break;
 
     if (Directory.Exists(folderPath))
     {
@@ -38,37 +46,43 @@ while (true) // Main application loop
         {
             Console.Write("Process this folder? (Y/N): ");
             var responseKey = Console.ReadKey(true).Key;
+            Console.WriteLine();
 
             if (responseKey == ConsoleKey.Y)
             {
-                Console.WriteLine("\n"); // Add a space before processing starts
+                Console.WriteLine();
+                Console.WriteLine("--- Log Output ---");
+                int progressBarTop = Console.CursorTop;
+                Console.WriteLine();
 
-                // Set up progress reporting
                 var progress = new Progress<ProcessingStatus>(p =>
                 {
-                    // If we get a status message, print it as a log line.
-                    if (!string.IsNullOrEmpty(p.statusMessage))
+                    lock (consoleLock)
                     {
-                        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {p.statusMessage}");
-                    }
+                        var (currentLeft, currentTop) = (Console.CursorLeft, Console.CursorTop);
 
-                    // If we get a percentage, draw the progress bar.
-                    if (p.progressPercentage > 0)
-                    {
+                        Console.SetCursorPosition(0, progressBarTop);
                         Console.CursorVisible = false;
+
                         int barWidth = 50;
                         int progressBlocks = (int)((p.progressPercentage / 100) * barWidth);
                         string bar = $"[{new string('█', progressBlocks)}{new string('-', barWidth - progressBlocks)}]";
+                        string etrString = p.etr > TimeSpan.Zero ? $" (ETR: {p.etr:mm\\:ss})" : "";
+                        string line = $"Progress: {bar} {(int)p.progressPercentage}%{etrString}";
 
-                        // Use SetCursorPosition to overwrite the same line for the progress bar
-                        Console.SetCursorPosition(0, Console.CursorTop);
-                        Console.Write($"{bar} {(int)p.progressPercentage}% ");
+                        Console.Write(line.PadRight(Console.WindowWidth - 1));
 
-                        // Reset cursor to the end of the line if it's the final update
-                        if (p.progressPercentage >= 100)
+                        if (!string.IsNullOrEmpty(p.statusMessage))
                         {
-                            Console.WriteLine();
+                            Console.SetCursorPosition(0, currentTop);
+                            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {p.statusMessage}");
                         }
+                        else
+                        {
+                            Console.SetCursorPosition(currentLeft, currentTop);
+                        }
+
+                        Console.CursorVisible = true;
                     }
                 });
 
@@ -79,10 +93,6 @@ while (true) // Main application loop
                 catch (Exception ex)
                 {
                     Console.WriteLine($"\n--- ERROR ---\n{ex.Message}\n-------------");
-                }
-                finally
-                {
-                    Console.CursorVisible = true;
                 }
             }
             else

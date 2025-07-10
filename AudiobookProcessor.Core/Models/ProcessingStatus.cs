@@ -26,4 +26,5 @@ public class ProcessingStatus
     public double progressPercentage { get; set; } //
     public string statusMessage { get; set; } //
     public bool isVerbose { get; set; } //
+    public TimeSpan etr { get; set; } // Estimated Time Remaining
 }
