@@ -1,69 +1,47 @@
-# AudiobookProcessor
+# Audiobook Processor
 
-A brutally simple Windows utility for preparing audiobook files for Jellyfin. Converts messy collections of audio files into clean, single M4B files with preserved metadata and chapters.
+A brutally simple console utility for preparing audiobook files for Jellyfin. It converts messy collections of audio files into clean, single M4B files with preserved metadata and chapters.
 
 ## What It Does
 
-- **Multiple MP3/M4A files** → Single M4B with embedded chapters
-- **Single non-M4B file** → M4B conversion with metadata preservation
-- **Already processed M4B** → Skips and reports clean
-- **Preserves all metadata** → Cover art, narrator, series info, chapters
-- **Safe processing** → Validates before overwriting, atomic operations
+- **Multiple audio files** → Single M4B file with preserved metadata and embedded chapters.
+- **Single non-M4B file** → M4B conversion with metadata preservation.
+- **Safe processing** → Backs up original files before processing begins.
+- **Preserves Metadata** → Keeps key information like title and author intact.
 
 ## Why This Exists
 
-Jellyfin wants single audiobook files with embedded chapters. Publishers give you 47 separate MP3 files or weird formats. This tool fixes that mismatch without losing your precious metadata.
-
-## Requirements
-
-- Windows 10/11
-- .NET 8.0+ (bundled in standalone exe)
-- FFmpeg (bundled)
-
-## Usage
-
-1. Run AudiobookProcessor.exe
-2. Select audiobook folder
-3. Review what will happen
-4. Click "Process Folder"
-5. Wait for completion
-6. Import into Jellyfin
+Jellyfin prefers single audiobook files with embedded chapters. Publishers often provide folders with dozens of separate MP3 or M4A files. This tool fixes that mismatch without losing your precious metadata.
 
 ## Features
 
-- **Brutalist UI** - No fancy nonsense, just functionality
-- **Real-time progress** - See exactly what's happening
-- **Verbose logging** - Optional detailed output for troubleshooting
-- **Fail-fast approach** - Stops on errors rather than corrupting files
-- **Metadata preservation** - Keeps all your audiobook info intact
-- **Chapter support** - Properly embedded chapters for navigation
+- **Brutalist Console UI** - No fancy nonsense, just functional, information-dense output.
+- **Real-time Progress** - A live-updating progress bar and ETR timer show the status of long encoding operations.
+- **Verbose Logging** - The application prints each step of the process to the console with timestamps.
+- **Safe by Default** - Always creates a `.backup` folder of your original files before making any changes.
+- **Robust Path Handling** - Automatically handles paths that are pasted with or without surrounding quotes.
 
-## Supported Input Formats
+## Requirements
 
-- MP3 (ID3v2 metadata)
-- M4A/M4B (iTunes metadata)
-- FLAC (Vorbis comments)
-- OGG (Vorbis comments)
-- WMA (Windows Media metadata)
+- Windows (64-bit)
+- FFmpeg and FFprobe (must be in the same folder as the executable). The application is bundled with the required versions.
 
-## Output Format
+## Usage
 
-All files are converted to M4B (MPEG-4 audiobook format) with:
+This is a console application. After publishing the `AudiobookProcessor.ConsoleUI` project, you can run it from a terminal (like Windows Terminal or PowerShell).
 
-- AAC audio codec
-- Embedded chapters
-- Preserved metadata
-- Cover art
-- Proper audiobook tagging
+1. Navigate to the publish directory in your terminal.
+2. Run the application, passing the path to your audiobook folder as an argument. Make sure to wrap the path in quotes if it contains spaces.
 
-## Development
+```powershell
+.\AudiobookProcessor.ConsoleUI.exe "C:\Path\To Your\Audiobook Folder"
+```
 
-Built with WinUI 3 and bundled FFmpeg. No external dependencies, no web frameworks, no unnecessary complexity.
+The application will analyze the folder, ask for confirmation, and then process the files.
 
-## License
+## Architecture
 
-MIT License - Use it however you want.
+The solution is architected with a clean separation between the backend logic and the user interface.
 
-## Contributing
-
-This is a personal utility project. Feel free to fork and modify for your needs. PRs welcome if they maintain the simplicity and brutalist approach.
+- `AudiobookProcessor.Core`: A .NET Class Library containing all services for file operations, FFmpeg interaction, and metadata processing.
+- `AudiobookProcessor.ConsoleUI`: A console application that provides a text-based user interface and references the Core library.
