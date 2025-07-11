@@ -35,3 +35,13 @@ This is a console application. After publishing the `AudiobookProcessor.ConsoleU
 
 ```powershell
 .\AudiobookProcessor.ConsoleUI.exe "C:\Path\To Your\Audiobook Folder"
+```
+
+The application will analyze the folder, ask for confirmation, and then process the files.
+
+## Architecture
+
+The solution is architected with a clean separation between the backend logic and the user interface.
+
+- `AudiobookProcessor.Core`: A .NET Class Library containing all services for file operations, FFmpeg interaction, and metadata processing.
+- `AudiobookProcessor.ConsoleUI`: A console application that provides a text-based user interface and references the Core library.
